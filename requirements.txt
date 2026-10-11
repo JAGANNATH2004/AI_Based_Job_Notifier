@@ -1,0 +1,16 @@
+requests
+beautifulsoup4
+playwright
+apscheduler
+python-dotenv
+pytz
+# Web interface
+fastapi
+uvicorn[standard]
+python-multipart
+jinja2
+# Supabase & Authentication
+supabase>=2.0.0
+gotrue>=2.0.0
+pyjwt[crypto]>=2.8.0
+bcrypt>=4.0.0

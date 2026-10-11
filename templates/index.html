@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JobScout Dashboard</title>
+  <meta name="description"
+    content="Job discovery dashboard with configurable locations, roles, and automated notifications." />
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%234F46E5'/></svg>" />
+</head>
+
+<body>
+
+  <!-- Animated background layers -->
+  <div class="bg-grid"></div>
+  <div class="bg-mesh"></div>
+
+  <!-- ── Header ──────────────────────────────────────────────── -->
+  <header>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="/" class="logo">
+        <span class="logo-text">JobScout</span>
+      </a>
+    </div>
+
+    <div class="header-auth" style="margin-left:auto; display:flex; align-items:center; gap:12px;">
+      <!-- Guest state -->
+      <div id="header-guest" style="display:flex; gap:10px;">
+        <button class="btn btn-secondary" type="button"
+          onclick="switchGatewayTab('login'); document.getElementById('auth-gateway').scrollIntoView({behavior:'smooth'})"
+          style="padding:6px 16px; font-size:13px; width:auto;">
+          <span>Log In</span>
+        </button>
+        <button class="btn btn-primary" type="button"
+          onclick="switchGatewayTab('register'); document.getElementById('auth-gateway').scrollIntoView({behavior:'smooth'})"
+          style="padding:6px 16px; font-size:13px; width:auto;">
+          <span>Sign Up</span>
+        </button>
+      </div>
+
+      <!-- Authenticated state -->
+      <div id="header-user" style="display:none; align-items:center; gap:12px;">
+        <div class="user-pill">
+          <span id="user-display-email"
+            style="font-weight:600; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">user@example.com</span>
+        </div>
+        <button class="btn btn-secondary" type="button" onclick="logoutUser()"
+          style="padding:6px 12px; font-size:12px; width:auto;" title="Log Out">
+          <span>Log Out</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Mandatory Auth Gateway (Shown when NOT logged in) ──────── -->
+  <div id="auth-gateway" class="auth-gateway-container">
+    <div class="auth-gateway-hero">
+      <h1 class="auth-gateway-title">Welcome to <span class="gradient-text">JobScout</span></h1>
+      <p class="auth-gateway-subtitle">
+        Please sign in or create an account to start. Save your job roles, locations, and notification settings.
+      </p>
+    </div>
+
+    <div class="auth-gateway-card">
+      <div class="auth-tabs" style="margin-top:0;">
+        <button class="auth-tab active" id="gateway-tab-login" type="button" onclick="switchGatewayTab('login')">Log
+          In</button>
+        <button class="auth-tab" id="gateway-tab-register" type="button" onclick="switchGatewayTab('register')">Create
+          Account</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="gateway-login-form" onsubmit="handleGatewayLoginSubmit(event)" style="display:block; margin-top:24px;">
+        <div class="form-group">
+          <label class="form-label">Email Address:</label>
+          <input type="email" id="gateway-login-email" class="form-input" placeholder="name@example.com" required
+            autocomplete="email" />
+        </div>
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label">Password:</label>
+          <input type="password" id="gateway-login-password" class="form-input" placeholder="••••••••" required
+            autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary" id="gateway-login-btn" style="margin-top:24px; width:100%;">
+          <span id="gateway-login-label">Log In</span>
+        </button>
+        <div style="text-align:center; margin-top:16px; font-size:13px; color:var(--text-secondary);">
+          Don't have an account? <a href="javascript:void(0)" onclick="switchGatewayTab('register')"
+            style="color:var(--brand-primary); text-decoration:none; font-weight:600;">Sign up</a>
+        </div>
+      </form>
+
+      <!-- Register Form -->
+      <form id="gateway-register-form" onsubmit="handleGatewayRegisterSubmit(event)"
+        style="display:none; margin-top:24px;">
+        <div class="form-group">
+          <label class="form-label">Full Name:</label>
+          <input type="text" id="gateway-register-name" class="form-input" placeholder="e.g. Alex Sharma"
+            autocomplete="name" />
+        </div>
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label">Email Address:</label>
+          <input type="email" id="gateway-register-email" class="form-input" placeholder="name@example.com" required
+            autocomplete="email" />
+        </div>
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label">Create Password:</label>
+          <input type="password" id="gateway-register-password" class="form-input" placeholder="At least 6 characters"
+            minlength="6" required autocomplete="new-password" />
+        </div>
+        <button type="submit" class="btn btn-primary" id="gateway-register-btn" style="margin-top:24px; width:100%;">
+          <span id="gateway-register-label">Create Account</span>
+        </button>
+        <div style="text-align:center; margin-top:16px; font-size:13px; color:var(--text-secondary);">
+          Already have an account? <a href="javascript:void(0)" onclick="switchGatewayTab('login')"
+            style="color:var(--brand-primary); text-decoration:none; font-weight:600;">Log in</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Protected App Screen (Revealed ONLY when authenticated) ── -->
+  <div id="app-screen" style="display:none;">
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs" role="tablist">
+      <button class="nav-tab active" id="tab-btn-search" onclick="switchTab('search')">
+        Find Jobs
+      </button>
+      <button class="nav-tab" id="tab-btn-settings" onclick="switchTab('settings')">
+        Settings
+      </button>
+    </div>
+
+
+    <!-- Main Content Wrapper -->
+    <div class="page-wrapper">
+
+      <!-- ═══════════════════════════════════════════════════════════
+       TAB 1: JOB SEARCH & DISCOVERY
+       ═══════════════════════════════════════════════════════════ -->
+      <div id="view-search">
+        <!-- Hero Section -->
+        <section class="hero">
+          <div class="hero-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Job Discovery
+          </div>
+          <h1>Find Your <span class="gradient-text">Dream Job</span></h1>
+          <p>Configure your target roles and locations to search, evaluate, and rank matching opportunities in real time.</p>
+        </section>
+
+        <!-- ── Search Input Variables Card ──────────────────────── -->
+        <div class="step-card" id="search-config-card">
+          <div class="step-header">
+            <div class="step-number">1</div>
+            <div>
+              <div class="step-title">Target Locations & Roles</div>
+              <div class="step-subtitle">Customize where to search and which roles to match</div>
+            </div>
+          </div>
+
+          <!-- Locations Input Variables -->
+          <div class="form-group">
+            <label class="form-label">Target Locations (Enter cities you want to search):</label>
+            <div class="tag-container" id="search-locations-pills"></div>
+            <div class="input-with-btn">
+              <input type="text" id="new-location-input" class="form-input"
+                placeholder="Type a city and press Enter (e.g. Hyderabad, Bangalore, Remote)"
+                onkeydown="handleTagKey(event, 'location')" autocomplete="off" />
+              <button class="btn btn-secondary" type="button" style="width:auto; padding:0 20px"
+                onclick="addCustomTag('location')">Add City</button>
+            </div>
+          </div>
+
+          <!-- Job Roles Input Variables -->
+          <div class="form-group" style="margin-top:20px;">
+            <label class="form-label">Target Job Roles (Enter roles you want to match):</label>
+            <div class="tag-container" id="search-roles-pills"></div>
+            <div class="input-with-btn">
+              <input type="text" id="new-role-input" class="form-input"
+                placeholder="Type a role and press Enter (e.g. Systems Engineer, Backend Engineer)"
+                onkeydown="handleTagKey(event, 'role')" autocomplete="off" />
+              <button class="btn btn-secondary" type="button" style="width:auto; padding:0 20px"
+                onclick="addCustomTag('role')">Add Role</button>
+            </div>
+          </div>
+
+          <!-- Experience Level -->
+          <div class="form-group" style="margin-top:16px;">
+            <label class="form-label">Experience Level:</label>
+            <select class="form-select" id="search-experience-select" onchange="syncExperienceLevel(this.value)">
+              <option value="fresher" selected>Fresher / Entry Level (0-1 year)</option>
+              <option value="0-2 years">Junior (0-2 years)</option>
+              <option value="1-3 years">Mid-Level (1-3 years)</option>
+              <option value="3-5 years">Senior (3-5 years)</option>
+              <option value="5+ years">Lead / Principal (5+ years)</option>
+              <option value="any">Any Experience Level</option>
+            </select>
+          </div>
+
+          <div style="display:flex; gap:12px; margin-top:24px; flex-wrap:wrap;">
+            <button class="btn btn-primary" id="direct-search-btn" onclick="startJobSearch()"
+              style="flex:2; min-width:240px;">
+              <span class="btn-label">Search Jobs</span>
+            </button>
+            <button class="btn btn-secondary" type="button" onclick="saveCurrentLocationsAndRoles()"
+              style="flex:1; min-width:200px;">
+              <span>Save Preferences</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Step 2: Search & Ranking Progress ────────────────── -->
+        <div class="step-card" id="progress-card" style="display:none">
+          <div class="step-header">
+            <div class="step-number">2</div>
+            <div>
+              <div class="step-title">Search Progress</div>
+              <div class="step-subtitle">Searching LinkedIn and Naukri to find matching opportunities</div>
+            </div>
+          </div>
+
+          <div class="progress-timeline" id="progress-timeline">
+            <div class="progress-step" id="ps-linkedin">
+              <div class="progress-step-connector"></div>
+              <div class="progress-step-icon">1</div>
+              <div class="progress-step-text">
+                <div class="progress-step-label" id="ps-linkedin-text">Searching LinkedIn…</div>
+              </div>
+            </div>
+            <div class="progress-step" id="ps-naukri">
+              <div class="progress-step-connector"></div>
+              <div class="progress-step-icon">2</div>
+              <div class="progress-step-text">
+                <div class="progress-step-label" id="ps-naukri-text">Searching Naukri…</div>
+              </div>
+            </div>
+            <div class="progress-step" id="ps-rank">
+              <div class="progress-step-icon">3</div>
+              <div class="progress-step-text">
+                <div class="progress-step-label" id="ps-rank-text">Ranking matching jobs…</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-container" id="log-container"></div>
+        </div>
+
+        <!-- ── Step 3: Results ──────────────────────────────────── -->
+        <div class="step-card" id="results-card" style="display:none">
+          <div class="step-header">
+            <div class="step-number">3</div>
+            <div>
+              <div class="step-title">Matching Jobs</div>
+              <div class="step-subtitle" id="results-subtitle">Top opportunities matching your configured roles</div>
+            </div>
+          </div>
+
+          <div class="jobs-grid" id="jobs-grid"></div>
+
+          <button class="btn btn-secondary" onclick="resetSearch()" style="margin-top:24px">
+            New Search
+          </button>
+        </div>
+      </div><!-- /view-search -->
+
+
+
+      <!-- ═══════════════════════════════════════════════════════════
+       TAB 2: SETTINGS
+       ═══════════════════════════════════════════════════════════ -->
+      <div id="view-settings" style="display:none">
+        <div class="step-card">
+          <div class="step-header">
+            <div>
+              <div class="step-title">Settings</div>
+              <div class="step-subtitle">Configure your target locations, job roles, delivery times, and notifications.</div>
+            </div>
+          </div>
+
+          <form id="settings-form" onsubmit="saveAllSettings(event)">
+            <div class="settings-grid settings-grid-3">
+
+              <!-- 1. Target Locations -->
+              <div class="settings-card">
+                <div class="settings-card-title">
+                  Target Locations
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Active Locations:</label>
+                  <div class="tag-container" id="setting-locations-pills"></div>
+                  <div class="input-with-btn">
+                    <input type="text" id="setting-new-location" class="form-input"
+                      placeholder="Type location and press Enter (e.g. Hyderabad)"
+                      onkeydown="handleSettingTagKey(event, 'location')" autocomplete="off" />
+                    <button class="btn btn-secondary" type="button" style="width:auto; padding:0 16px;"
+                      onclick="addSettingTag('location')">Add</button>
+                  </div>
+                  <div class="form-hint">Type a location and press Enter to add. Click &#10005; to remove.</div>
+                </div>
+              </div>
+
+              <!-- 2. Target Roles -->
+              <div class="settings-card">
+                <div class="settings-card-title">
+                  Target Job Roles
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Active Target Job Roles:</label>
+                  <div class="tag-container" id="setting-roles-pills"></div>
+                  <div class="input-with-btn">
+                    <input type="text" id="setting-new-role" class="form-input"
+                      placeholder="Type job role and press Enter (e.g. Systems Engineer)"
+                      onkeydown="handleSettingTagKey(event, 'role')" autocomplete="off" />
+                    <button class="btn btn-secondary" type="button" style="width:auto; padding:0 16px;"
+                      onclick="addSettingTag('role')">Add</button>
+                  </div>
+                  <div class="form-hint">Type a job role and press Enter to add. Click &#10005; to remove.</div>
+                </div>
+              </div>
+
+              <!-- 3. Target Experience Level -->
+              <div class="settings-card">
+                <div class="settings-card-title">
+                  Target Experience Level
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Experience Tier / Requirement:</label>
+                  <select id="setting-experience" class="form-select" onchange="syncExperienceLevel(this.value)">
+                    <option value="fresher" selected>Fresher / Entry Level (0-1 year)</option>
+                    <option value="0-2 years">Junior (0-2 years)</option>
+                    <option value="1-3 years">Mid-Level (1-3 years)</option>
+                    <option value="3-5 years">Senior (3-5 years)</option>
+                    <option value="5+ years">Lead / Principal (5+ years)</option>
+                    <option value="any">Any Experience Level</option>
+                  </select>
+                  <div class="form-hint">Matches jobs tailored to this experience tier.</div>
+                </div>
+              </div>
+
+            </div><!-- /settings-grid-3 -->
+
+            <div class="settings-grid">
+
+              <!-- 4. Telegram Notifications -->
+              <div class="settings-card">
+                <div class="settings-card-title">
+                  Telegram Notifications
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Telegram Bot Token:</label>
+                  <div class="input-with-btn">
+                    <input type="password" id="setting-telegram-token" class="form-input"
+                      placeholder="123456789:AAE..." />
+                    <button type="button" class="btn btn-secondary" id="toggle-token-btn" style="width:auto; padding:0 14px;"
+                      onclick="togglePassword('setting-telegram-token')">Show</button>
+                  </div>
+                  <div class="form-hint">Created via @BotFather on Telegram.</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Telegram Chat ID:</label>
+                  <input type="text" id="setting-telegram-chat-id" class="form-input" placeholder="e.g. 5812277785" />
+                  <div class="form-hint">Your chat ID (send /start to @userinfobot to find it).</div>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="testTelegramNotification()"
+                  style="margin-top:10px">
+                  Send Test Message
+                </button>
+              </div>
+
+              <!-- 5. Daily Schedule -->
+              <div class="settings-card">
+                <div class="settings-card-title">
+                  Daily Schedule
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Daily Delivery Time (HH:MM):</label>
+                  <input type="time" id="setting-report-time" class="form-input" value="09:41" required />
+                  <div class="form-hint">Your daily digest will be sent at this time.</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Check Frequency (Hours):</label>
+                  <input type="number" id="setting-interval" class="form-input" min="1" max="72" value="23" required />
+                  <div class="form-hint">How often the system checks for new job posts.</div>
+                </div>
+              </div>
+
+            </div><!-- /settings-grid -->
+
+            <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px;">
+              <button type="submit" class="btn btn-primary" style="width:auto; min-width:220px;">
+                Save Settings
+              </button>
+            </div>
+          </form>
+        </div>
+      </div><!-- /view-settings -->
+
+    </div><!-- /page-wrapper -->
+  </div><!-- /app-screen -->
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ── Application Logic ────────────────────────────────────── -->
+  <script>
+    // State
+    let selectedLocations = [];
+    let selectedRoles = [];
+    let currentSettings = {};
+    let authToken = localStorage.getItem("ai_jobscout_token") || null;
+    let currentUser = null;
+
+    function getAuthHeaders() {
+      const headers = { "Content-Type": "application/json" };
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+      return headers;
+    }
+
+    // ── Tab Switching ──────────────────────────────────────────
+    function switchTab(tabId) {
+      document.querySelectorAll(".nav-tab").forEach(b => b.classList.remove("active"));
+      document.getElementById(`tab-btn-${tabId}`).classList.add("active");
+
+      document.getElementById("view-search").style.display = tabId === "search" ? "block" : "none";
+      document.getElementById("view-settings").style.display = tabId === "settings" ? "block" : "none";
+
+      if (tabId === "settings") loadSettingsForm();
+    }
+
+    // ── Tag Pills Rendering (Synchronized across Views) ─────────
+    function renderLocationPills() {
+      const containers = [
+        document.getElementById("search-locations-pills"),
+        document.getElementById("setting-locations-pills")
+      ].filter(Boolean);
+
+      containers.forEach(container => {
+        container.innerHTML = "";
+        if (!selectedLocations.length) {
+          container.innerHTML = `<span style="color:var(--text-muted); font-size:13px; font-style:italic; padding:4px 0;">No locations added yet. Type a location and press Enter.</span>`;
+          return;
+        }
+        selectedLocations.forEach(loc => {
+          const pill = document.createElement("span");
+          pill.className = "tag-pill tag-pill-cyan active";
+          pill.innerHTML = `${escapeHtml(loc)} <span class="remove-tag" title="Remove" onclick="removeLocation(event, '${escapeQuotes(loc)}')">&#10005;</span>`;
+          container.appendChild(pill);
+        });
+      });
+    }
+
+    function removeLocation(e, loc) {
+      if (e) e.stopPropagation();
+      selectedLocations = selectedLocations.filter(l => l.toLowerCase() !== loc.toLowerCase());
+      renderLocationPills();
+    }
+
+    function renderRolePills() {
+      const containers = [
+        document.getElementById("search-roles-pills"),
+        document.getElementById("setting-roles-pills")
+      ].filter(Boolean);
+
+      containers.forEach(container => {
+        container.innerHTML = "";
+        if (!selectedRoles.length) {
+          container.innerHTML = `<span style="color:var(--text-muted); font-size:13px; font-style:italic; padding:4px 0;">No job roles added yet. Type a job role and press Enter.</span>`;
+          return;
+        }
+        selectedRoles.forEach(r => {
+          const pill = document.createElement("span");
+          pill.className = "tag-pill active";
+          pill.innerHTML = `${escapeHtml(r)} <span class="remove-tag" title="Remove" onclick="removeRole(event, '${escapeQuotes(r)}')">&#10005;</span>`;
+          container.appendChild(pill);
+        });
+      });
+    }
+
+    function removeRole(e, role) {
+      if (e) e.stopPropagation();
+      selectedRoles = selectedRoles.filter(r => r.toLowerCase() !== role.toLowerCase());
+      renderRolePills();
+    }
+
+    // ── Search View Tag Input Handlers ──
+    function handleTagKey(e, type) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addCustomTag(type);
+      }
+    }
+
+    function addCustomTag(type) {
+      if (type === "location") {
+        const input = document.getElementById("new-location-input");
+        if (!input) return;
+        const rawVal = input.value.trim();
+        if (!rawVal) return;
+        const items = rawVal.split(",").map(s => s.trim()).filter(Boolean);
+        items.forEach(val => {
+          if (!selectedLocations.some(l => l.toLowerCase() === val.toLowerCase())) {
+            selectedLocations.push(val);
+          }
+        });
+        input.value = "";
+        input.focus();
+        renderLocationPills();
+      } else if (type === "role") {
+        const input = document.getElementById("new-role-input");
+        if (!input) return;
+        const rawVal = input.value.trim();
+        if (!rawVal) return;
+        const items = rawVal.split(",").map(s => s.trim()).filter(Boolean);
+        items.forEach(val => {
+          if (!selectedRoles.some(r => r.toLowerCase() === val.toLowerCase())) {
+            selectedRoles.push(val);
+          }
+        });
+        input.value = "";
+        input.focus();
+        renderRolePills();
+      }
+    }
+
+    // ── Settings View Tag Input Handlers (Enter adds & clears) ──
+    function handleSettingTagKey(e, type) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addSettingTag(type);
+      }
+    }
+
+    function addSettingTag(type) {
+      if (type === "location") {
+        const input = document.getElementById("setting-new-location");
+        if (!input) return;
+        const rawVal = input.value.trim();
+        if (!rawVal) return;
+        const items = rawVal.split(",").map(s => s.trim()).filter(Boolean);
+        items.forEach(val => {
+          if (!selectedLocations.some(l => l.toLowerCase() === val.toLowerCase())) {
+            selectedLocations.push(val);
+          }
+        });
+        input.value = "";
+        input.focus();
+        renderLocationPills();
+      } else if (type === "role") {
+        const input = document.getElementById("setting-new-role");
+        if (!input) return;
+        const rawVal = input.value.trim();
+        if (!rawVal) return;
+        const items = rawVal.split(",").map(s => s.trim()).filter(Boolean);
+        items.forEach(val => {
+          if (!selectedRoles.some(r => r.toLowerCase() === val.toLowerCase())) {
+            selectedRoles.push(val);
+          }
+        });
+        input.value = "";
+        input.focus();
+        renderRolePills();
+      }
+    }
+
+    function syncExperienceLevel(val) {
+      const setEl = document.getElementById("setting-experience");
+      const searchEl = document.getElementById("search-experience-select");
+      if (setEl && setEl.value !== val) setEl.value = val;
+      if (searchEl && searchEl.value !== val) searchEl.value = val;
+    }
+
+    // ── Settings Management ────────────────────────────────────
+    async function loadSettingsForm() {
+      try {
+        const res = await fetch("/api/settings", { headers: getAuthHeaders() });
+        const data = await res.json();
+        currentSettings = data;
+
+        const locs = data.job_locations || [];
+        const roles = data.job_roles || [];
+        const exp = data.experience_level || "fresher";
+
+        const setExp = document.getElementById("setting-experience");
+        if (setExp) setExp.value = exp;
+        const searchExp = document.getElementById("search-experience-select");
+        if (searchExp) searchExp.value = exp;
+
+        document.getElementById("setting-telegram-token").value = data.telegram_bot_token || "";
+        document.getElementById("setting-telegram-chat-id").value = data.telegram_chat_id || "";
+        document.getElementById("setting-report-time").value = data.report_time || "09:41";
+        document.getElementById("setting-interval").value = data.scrape_interval_hours || 23;
+
+        // Load user configured locations & roles
+        selectedLocations = [...locs];
+        selectedRoles = [...roles];
+        renderLocationPills();
+        renderRolePills();
+      } catch (err) {
+        showToast("Failed to fetch settings from server.", "error");
+      }
+    }
+
+    async function saveCurrentLocationsAndRoles() {
+      if (!selectedLocations.length && !selectedRoles.length) {
+        showToast("Please enter at least one location or role to save.", "error");
+        return;
+      }
+      const currentExp = document.getElementById("search-experience-select") ? document.getElementById("search-experience-select").value : "fresher";
+      const payload = {
+        job_locations: selectedLocations,
+        job_roles: selectedRoles,
+        experience_level: currentExp,
+      };
+      try {
+        const res = await fetch("/api/settings", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          const notifyNote = data.notification_sent ? " Telegram alert sent." : "";
+          const jobNote = data.auto_job_search_triggered ? " Automated search initiated." : "";
+          showToast(`Preferences saved successfully!${notifyNote}${jobNote}`, "success");
+          renderLocationPills();
+          renderRolePills();
+          syncExperienceLevel(currentExp);
+        } else {
+          showToast(data.message || "Error saving settings.", "error");
+        }
+      } catch (err) {
+        showToast("Network error while saving settings.", "error");
+      }
+    }
+
+    async function saveAllSettings(e) {
+      e.preventDefault();
+      // Auto-commit any text typed into input fields before saving
+      const pendingLoc = document.getElementById("setting-new-location");
+      if (pendingLoc && pendingLoc.value.trim()) addSettingTag("location");
+      const pendingRole = document.getElementById("setting-new-role");
+      if (pendingRole && pendingRole.value.trim()) addSettingTag("role");
+
+      const locs = [...selectedLocations];
+      const roles = [...selectedRoles];
+      const expLevel = document.getElementById("setting-experience") ? document.getElementById("setting-experience").value : "fresher";
+      const telegramToken = document.getElementById("setting-telegram-token").value.trim();
+      const telegramChatId = document.getElementById("setting-telegram-chat-id").value.trim();
+      const reportTime = document.getElementById("setting-report-time").value.trim();
+      const scrapeInterval = parseInt(document.getElementById("setting-interval").value.trim()) || 23;
+
+      const payload = {
+        job_locations: locs,
+        job_roles: roles,
+        experience_level: expLevel,
+        telegram_bot_token: telegramToken,
+        telegram_chat_id: telegramChatId,
+        report_time: reportTime,
+        scrape_interval_hours: scrapeInterval,
+      };
+
+      try {
+        const res = await fetch("/api/settings", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          const notifyNote = data.notification_sent ? " Telegram confirmation sent." : "";
+          showToast(`Settings saved successfully!${notifyNote} Digest scheduled for ${reportTime}.`, "success");
+          selectedLocations = [...locs];
+          selectedRoles = [...roles];
+          renderLocationPills();
+          renderRolePills();
+        } else {
+          showToast(data.message || "Error saving settings.", "error");
+        }
+      } catch (err) {
+        showToast("Network error while saving settings.", "error");
+      }
+    }
+
+    async function testTelegramNotification() {
+      const token = document.getElementById("setting-telegram-token").value.trim();
+      const chatId = document.getElementById("setting-telegram-chat-id").value.trim();
+
+      showToast("Sending test notification to Telegram...", "info");
+      try {
+        const res = await fetch("/api/test-telegram", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ telegram_bot_token: token, telegram_chat_id: chatId }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message, "success");
+        } else {
+          showToast(data.message, "error");
+        }
+      } catch (err) {
+        showToast("Failed to test Telegram notification.", "error");
+      }
+    }
+
+    // ── Search & SSE Execution ─────────────────────────────────
+    function startJobSearch() {
+      if (!selectedLocations.length) {
+        showToast("Please enter at least one target location above.", "error");
+        document.getElementById("new-location-input").focus();
+        return;
+      }
+      if (!selectedRoles.length) {
+        showToast("Please enter at least one target job role above.", "error");
+        document.getElementById("new-role-input").focus();
+        return;
+      }
+
+      // Show progress card, hide results
+      document.getElementById("progress-card").style.display = "block";
+      document.getElementById("results-card").style.display = "none";
+      document.getElementById("log-container").innerHTML = "";
+
+      // Reset timeline icons
+      document.getElementById("ps-linkedin").className = "progress-step active";
+      document.getElementById("ps-naukri").className = "progress-step";
+      document.getElementById("ps-rank").className = "progress-step";
+
+      // Build query params
+      const params = new URLSearchParams();
+      params.set("locations", selectedLocations.join(","));
+      params.set("roles", selectedRoles.join(","));
+      params.set("experience_level", document.getElementById("search-experience-select").value);
+
+      if (authToken) {
+        params.set("token", authToken);
+      }
+
+      addLog(`Initiating search across ${selectedLocations.length} locations for ${selectedRoles.length} roles...`);
+
+      const eventSource = new EventSource(`/find-jobs?${params.toString()}`);
+
+      eventSource.onmessage = function (event) {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "progress") {
+          addLog(data.message);
+          if (data.step === 1) {
+            document.getElementById("ps-linkedin").className = "progress-step active";
+            document.getElementById("ps-linkedin-text").textContent = data.message;
+          } else if (data.step === 2) {
+            document.getElementById("ps-linkedin").className = "progress-step done";
+            document.getElementById("ps-naukri").className = "progress-step active";
+            document.getElementById("ps-naukri-text").textContent = data.message;
+          } else if (data.step === 3) {
+            document.getElementById("ps-naukri").className = "progress-step done";
+            document.getElementById("ps-rank").className = "progress-step active";
+            document.getElementById("ps-rank-text").textContent = data.message;
+          }
+        } else if (data.type === "result") {
+          document.getElementById("ps-rank").className = "progress-step done";
+          eventSource.close();
+          renderJobResults(data.jobs || []);
+        } else if (data.type === "error") {
+          addLog("Error: " + data.message);
+          eventSource.close();
+          showToast(data.message, "error");
+        }
+      };
+
+      eventSource.onerror = function () {
+        addLog("Connection closed.");
+        eventSource.close();
+      };
+    }
+
+    function renderJobResults(jobs) {
+      document.getElementById("progress-card").style.display = "none";
+      const resultsCard = document.getElementById("results-card");
+      resultsCard.style.display = "block";
+
+      const grid = document.getElementById("jobs-grid");
+      grid.innerHTML = "";
+
+      if (!jobs.length) {
+        grid.innerHTML = `<div style="text-align:center; padding:32px; color:var(--text-secondary); grid-column:1/-1;">No jobs matched your criteria. Try adding more locations or role variations!</div>`;
+        return;
+      }
+
+      jobs.forEach((job, idx) => {
+        const card = document.createElement("div");
+        card.className = "job-card";
+        const sourceClass = job.source === "LinkedIn" ? "badge-purple" : "badge-cyan";
+        const rawLink = (job.link || "").trim();
+        const safeLink = (rawLink.startsWith("http://") || rawLink.startsWith("https://")) ? rawLink : "#";
+        card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+        <span class="badge ${sourceClass}">${escapeHtml(job.source || "Job Post")}</span>
+        <span style="font-size:12px; color:var(--text-muted); font-weight:600">#${idx + 1}</span>
+      </div>
+      <div class="job-title" style="margin-top:10px;">${escapeHtml(job.title || "Job Opportunity")}</div>
+      <div class="job-company">${escapeHtml(job.company || "Company")}</div>
+      <div class="job-meta">
+        <span>${escapeHtml(job.location || "India")}</span>
+        <span>${escapeHtml(job.experience || "0-1 yr")}</span>
+        <span>${escapeHtml(job.posted_time || "Recently")}</span>
+      </div>
+      <a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="margin-top:16px; text-decoration:none; display:flex; justify-content:center;">
+        Apply Now
+      </a>
+    `;
+        grid.appendChild(card);
+      });
+
+      resultsCard.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function resetSearch() {
+      document.getElementById("results-card").style.display = "none";
+      document.getElementById("search-config-card").scrollIntoView({ behavior: "smooth" });
+    }
+
+    function addLog(msg) {
+      const container = document.getElementById("log-container");
+      const p = document.createElement("div");
+      p.style.padding = "4px 0";
+      p.style.borderBottom = "1px solid var(--border)";
+      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      container.appendChild(p);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // ── Authentication Management ──────────────────────────────
+    function switchGatewayTab(tab) {
+      const isLogin = tab === 'login';
+      const tabLogin = document.getElementById("gateway-tab-login");
+      const tabRegister = document.getElementById("gateway-tab-register");
+      const formLogin = document.getElementById("gateway-login-form");
+      const formRegister = document.getElementById("gateway-register-form");
+
+      if (tabLogin) tabLogin.className = `auth-tab ${isLogin ? 'active' : ''}`;
+      if (tabRegister) tabRegister.className = `auth-tab ${!isLogin ? 'active' : ''}`;
+      if (formLogin) formLogin.style.display = isLogin ? "block" : "none";
+      if (formRegister) formRegister.style.display = !isLogin ? "block" : "none";
+    }
+
+    async function handleGatewayLoginSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById("gateway-login-email").value.trim();
+      const password = document.getElementById("gateway-login-password").value;
+      const btn = document.getElementById("gateway-login-btn");
+      const label = document.getElementById("gateway-login-label");
+
+      btn.disabled = true;
+      label.textContent = "Logging in...";
+
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || "Login failed.");
+        }
+
+        if (data.session && data.session.access_token) {
+          authToken = data.session.access_token;
+          localStorage.setItem("ai_jobscout_token", authToken);
+          currentUser = data.user;
+          updateAuthUI();
+          showToast(`Welcome back, ${currentUser.full_name || currentUser.email}!`, "success");
+          await loadSettingsForm();
+        }
+      } catch (err) {
+        showToast(err.message, "error");
+      } finally {
+        btn.disabled = false;
+        label.textContent = "Log In";
+      }
+    }
+
+    async function handleGatewayRegisterSubmit(e) {
+      e.preventDefault();
+      const fullName = document.getElementById("gateway-register-name").value.trim();
+      const email = document.getElementById("gateway-register-email").value.trim();
+      const password = document.getElementById("gateway-register-password").value;
+      const btn = document.getElementById("gateway-register-btn");
+      const label = document.getElementById("gateway-register-label");
+
+      btn.disabled = true;
+      label.textContent = "Creating Account...";
+
+      try {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, full_name: fullName }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || "Registration failed.");
+        }
+
+        if (data.session && data.session.access_token) {
+          authToken = data.session.access_token;
+          localStorage.setItem("ai_jobscout_token", authToken);
+          currentUser = data.user;
+          updateAuthUI();
+          showToast("Account created successfully!", "success");
+          await loadSettingsForm();
+        } else {
+          showToast("Account created! Please check your email or log in.", "info");
+          switchGatewayTab("login");
+        }
+      } catch (err) {
+        showToast(err.message, "error");
+      } finally {
+        btn.disabled = false;
+        label.textContent = "Create Account";
+      }
+    }
+
+    function updateAuthUI() {
+      const guestEl = document.getElementById("header-guest");
+      const userEl = document.getElementById("header-user");
+      const emailEl = document.getElementById("user-display-email");
+      const authGateway = document.getElementById("auth-gateway");
+      const appScreen = document.getElementById("app-screen");
+
+      if (currentUser) {
+        if (guestEl) guestEl.style.display = "none";
+        if (userEl) userEl.style.display = "flex";
+        if (emailEl) emailEl.textContent = currentUser.full_name || currentUser.email;
+        if (authGateway) authGateway.style.display = "none";
+        if (appScreen) appScreen.style.display = "block";
+      } else {
+        if (guestEl) guestEl.style.display = "flex";
+        if (userEl) userEl.style.display = "none";
+        if (authGateway) authGateway.style.display = "flex";
+        if (appScreen) appScreen.style.display = "none";
+      }
+    }
+
+    function logoutUser() {
+      authToken = null;
+      currentUser = null;
+      localStorage.removeItem("ai_jobscout_token");
+      selectedLocations = [];
+      selectedRoles = [];
+      renderLocationPills();
+      renderRolePills();
+      updateAuthUI();
+      showToast("Logged out successfully. Please sign in to continue.", "info");
+    }
+
+    async function initAuth() {
+      if (!authToken) {
+        updateAuthUI();
+        return;
+      }
+      try {
+        const res = await fetch("/api/auth/me", {
+          headers: { "Authorization": `Bearer ${authToken}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          currentUser = data.user;
+          updateAuthUI();
+          await loadSettingsForm();
+        } else {
+          authToken = null;
+          currentUser = null;
+          localStorage.removeItem("ai_jobscout_token");
+          updateAuthUI();
+        }
+      } catch (err) {
+        authToken = null;
+        currentUser = null;
+        updateAuthUI();
+      }
+    }
+
+    // ── Utilities ──────────────────────────────────────────────
+    function togglePassword(id) {
+      const el = document.getElementById(id);
+      const btn = document.getElementById("toggle-token-btn");
+      if (el.type === "password") {
+        el.type = "text";
+        if (btn) btn.textContent = "Hide";
+      } else {
+        el.type = "password";
+        if (btn) btn.textContent = "Show";
+      }
+    }
+
+    function showToast(msg, type = "info") {
+      const container = document.getElementById("toast-container");
+      const t = document.createElement("div");
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      container.appendChild(t);
+      setTimeout(() => {
+        t.style.opacity = "0";
+        setTimeout(() => t.remove(), 300);
+      }, 4000);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[m]);
+    }
+
+    function escapeQuotes(str) {
+      return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    // ── Init on load ───────────────────────────────────────────
+    window.addEventListener("DOMContentLoaded", async () => {
+      await initAuth();
+    });
+  </script>
+</body>
+
+</html>
